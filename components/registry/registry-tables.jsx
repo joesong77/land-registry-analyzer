@@ -62,7 +62,10 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
   if (!lands.length) return <TableEmpty />;
 
   return (
-    <Table className="min-w-[1180px]">
+    <Table
+      className="min-w-[1180px]"
+      containerClassName="max-h-[66vh] overflow-auto"
+    >
       <TableHeader className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
         <TableRow>
           <TableHead className="sticky left-0 z-20 w-28 bg-slate-50">
@@ -71,7 +74,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
           <TableHead className="w-28">土地面積</TableHead>
           <TableHead className="w-32">地上建號</TableHead>
           <TableHead className="w-32">所有權人</TableHead>
-          <TableHead className="min-w-64">地址</TableHead>
+          <TableHead className="min-w-64">所有權人地址</TableHead>
           <TableHead className="w-28">持分</TableHead>
           <TableHead className="w-28">持有面積</TableHead>
           <TableHead className="w-44">風險</TableHead>
@@ -191,6 +194,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
                   {owner ? (
                     <EditableCell
                       value={owner.address}
+                      displayValue={owner.address || '謄本未載（點擊補登）'}
                       onSave={(value) =>
                         onUpdateOwner(owner.id, 'address', value)
                       }
@@ -273,14 +277,17 @@ export function OwnerTable({ owners, lands, onUpdateOwner }) {
   if (!owners.length) return <TableEmpty />;
   const landById = new Map(lands.map((land) => [land.id, land]));
   return (
-    <Table className="min-w-[1320px]">
+    <Table
+      className="min-w-[1320px]"
+      containerClassName="max-h-[66vh] overflow-auto"
+    >
       <TableHeader className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
         <TableRow>
           <TableHead className="sticky left-0 z-20 bg-slate-50">地號</TableHead>
           <TableHead>次序</TableHead>
           <TableHead>所有權人</TableHead>
           <TableHead>統一編號</TableHead>
-          <TableHead className="min-w-72">地址</TableHead>
+          <TableHead className="min-w-72">所有權人地址</TableHead>
           <TableHead>權利範圍</TableHead>
           <TableHead>持有面積㎡</TableHead>
           <TableHead>登記日期</TableHead>
@@ -316,6 +323,7 @@ export function OwnerTable({ owners, lands, onUpdateOwner }) {
               <TableCell className="max-w-96 whitespace-normal">
                 <EditableCell
                   value={owner.address}
+                  displayValue={owner.address || '謄本未載（點擊補登）'}
                   onSave={(value) => onUpdateOwner(owner.id, 'address', value)}
                   label={`${owner.parcelNo}${owner.ownerName}地址`}
                 />
@@ -354,12 +362,15 @@ export function OwnerTable({ owners, lands, onUpdateOwner }) {
 export function AggregationTable({ owners }) {
   if (!owners.length) return <TableEmpty />;
   return (
-    <Table className="min-w-[980px]">
+    <Table
+      className="min-w-[980px]"
+      containerClassName="max-h-[66vh] overflow-auto"
+    >
       <TableHeader className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
         <TableRow>
           <TableHead>所有權人</TableHead>
           <TableHead>統一編號</TableHead>
-          <TableHead className="min-w-72">地址</TableHead>
+          <TableHead className="min-w-72">所有權人地址</TableHead>
           <TableHead>地號數</TableHead>
           <TableHead className="min-w-52">持有地號</TableHead>
           <TableHead>總持有㎡</TableHead>
@@ -375,7 +386,7 @@ export function AggregationTable({ owners }) {
             </TableCell>
             <TableCell>{owner.ownerId || '—'}</TableCell>
             <TableCell className="whitespace-normal">
-              {owner.address || '—'}
+              {owner.address || '謄本未載'}
             </TableCell>
             <TableCell>{owner.parcelCount}</TableCell>
             <TableCell className="whitespace-normal">
@@ -428,7 +439,10 @@ export function EncumbranceTable({ records, onUpdate }) {
       />
     );
   return (
-    <Table className="min-w-[1280px]">
+    <Table
+      className="min-w-[1280px]"
+      containerClassName="max-h-[66vh] overflow-auto"
+    >
       <TableHeader className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
         <TableRow>
           <TableHead>地號</TableHead>
@@ -501,7 +515,10 @@ export function ValidationTable({ issues, onConfirm }) {
     );
   }
   return (
-    <Table className="min-w-[1100px]">
+    <Table
+      className="min-w-[1100px]"
+      containerClassName="max-h-[66vh] overflow-auto"
+    >
       <TableHeader className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
         <TableRow>
           <TableHead>狀態</TableHead>

@@ -72,6 +72,11 @@ test('parses the complete 18-page registry fixture', async () => {
   assert.equal(parsed.lands.length, 10);
   assert.equal(parsed.owners.length, 28);
   assert.equal(parsed.encumbrances.length, 4);
+  assert.equal(parsed.owners.filter((owner) => owner.address).length, 1);
+  assert.equal(
+    parsed.owners.find((owner) => owner.parcelNo === '109-18').address,
+    '桃園市楊梅區金溪里17鄰三民路二段***',
+  );
   assert.equal(
     parsed.lands.reduce((sum, land) => sum + land.areaSqm, 0),
     2713,

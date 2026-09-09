@@ -1,21 +1,23 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-// oxlint-disable-next-line import/default -- Vite's ?url query creates this asset URL export.
-import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 import { normalizeRegistryText } from '@/lib/registry/normalize.js';
 import { rebuildPageText } from '@/lib/registry/parser.js';
 
-let pdfWorkerConfigured = false;
+let pdfModulesPromise;
 
 async function loadPdfJs() {
-  const pdfjs = await import('pdfjs-dist');
-  if (!pdfWorkerConfigured) {
-    pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
-    pdfWorkerConfigured = true;
-  }
-  return pdfjs;
+  pdfModulesPromise ??= Promise.all([
+    import('pdfjs-dist'),
+    import('pdfjs-dist/build/pdf.worker.min.mjs'),
+  ]).then(([pdfjs, pdfWorker]) => {
+    globalThis.pdfjsWorker = {
+      WorkerMessageHandler: pdfWorker.WorkerMessageHandler,
+    };
+    return pdfjs;
+  });
+  return pdfModulesPromise;
 }
 
 export function usePdfParser() {
@@ -39,7 +41,10 @@ export function usePdfParser() {
             pageCount: null,
           });
           const data = new Uint8Array(await entry.file.arrayBuffer());
-          document = await pdfjs.getDocument({ data }).promise;
+          document = await pdfjs.getDocument({
+            data,
+            verbosity: pdfjs.VerbosityLevel.ERRORS,
+          }).promise;
           let readablePages = 0;
 
           onProgress?.(entry.id, { pageCount: document.numPages });
@@ -68,7 +73,7 @@ export function usePdfParser() {
               pageCount: document.numPages,
               progress: Math.round((pageNumber / document.numPages) * 100),
             });
-            await new Promise((resolve) => window.setTimeout(resolve, 0));
+            await new Promise((resolve) => setTimeout(resolve, 0));
           }
 
           if (readablePages === 0) {

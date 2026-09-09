@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   FileSpreadsheet,
@@ -70,6 +70,17 @@ export function RegistryWorkbench() {
     exportWorkbook: registry.exportWorkbook,
     canExport,
   });
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const panel = document.querySelector(
+        `[data-registry-panel="${activeTab}"]`,
+      );
+      const scroller = panel?.querySelector('[data-slot="table-container"]');
+      if (scroller) scroller.scrollTop = 0;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab]);
 
   const filteredLands = useMemo(
     () =>
@@ -421,7 +432,8 @@ export function RegistryWorkbench() {
 
                   <TabsContent
                     value="land"
-                    className="max-h-[66vh] overflow-auto"
+                    data-registry-panel="land"
+                    className="min-h-0"
                   >
                     <LandGroupTable
                       lands={filteredLands}
@@ -432,13 +444,15 @@ export function RegistryWorkbench() {
                   </TabsContent>
                   <TabsContent
                     value="aggregate"
-                    className="max-h-[66vh] overflow-auto"
+                    data-registry-panel="aggregate"
+                    className="min-h-0"
                   >
                     <AggregationTable owners={filteredAggregates} />
                   </TabsContent>
                   <TabsContent
                     value="owners"
-                    className="max-h-[66vh] overflow-auto"
+                    data-registry-panel="owners"
+                    className="min-h-0"
                   >
                     <OwnerTable
                       owners={filteredOwners}
@@ -448,7 +462,8 @@ export function RegistryWorkbench() {
                   </TabsContent>
                   <TabsContent
                     value="encumbrances"
-                    className="max-h-[66vh] overflow-auto"
+                    data-registry-panel="encumbrances"
+                    className="min-h-0"
                   >
                     <EncumbranceTable
                       records={filteredEncumbrances}
@@ -457,7 +472,8 @@ export function RegistryWorkbench() {
                   </TabsContent>
                   <TabsContent
                     value="validation"
-                    className="max-h-[66vh] overflow-auto"
+                    data-registry-panel="validation"
+                    className="min-h-0"
                   >
                     <ValidationTable
                       issues={filteredValidations}
