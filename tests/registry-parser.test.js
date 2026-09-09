@@ -5,7 +5,10 @@ import test from 'node:test';
 
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
-import { calculateJointOwnershipShares } from '../lib/registry/aggregation.js';
+import {
+  aggregateOwners,
+  calculateJointOwnershipShares,
+} from '../lib/registry/aggregation.js';
 import {
   normalizeParcelNo,
   normalizeRegistryText,
@@ -44,6 +47,40 @@ test('calculates joint-ownership internal estimates without changing legal share
     ownerCount: 4,
   });
   assert.ok(partial.every((owner) => owner.calculatedShareDecimal === 0.125));
+});
+
+test('backfills an owner address from a later registry record', () => {
+  const owners = [
+    {
+      id: 'owner-1',
+      parcelId: 'land-1',
+      parcelNo: '109-1',
+      ownerName: '楊**',
+      ownerId: 'H102*****5',
+      address: '',
+      ownershipType: 'SINGLE',
+      ownershipAreaSqm: 100,
+    },
+    {
+      id: 'owner-2',
+      parcelId: 'land-2',
+      parcelNo: '109-18',
+      ownerName: '楊**',
+      ownerId: 'H102*****5',
+      address: '桃園市楊梅區金溪里17鄰三民路二段***',
+      ownershipType: 'SINGLE',
+      ownershipAreaSqm: 120,
+    },
+  ];
+  const lands = [
+    { id: 'land-1', hasMortgage: false, hasRestriction: false },
+    { id: 'land-2', hasMortgage: false, hasRestriction: false },
+  ];
+
+  const aggregated = aggregateOwners(owners, lands);
+
+  assert.equal(aggregated.length, 1);
+  assert.equal(aggregated[0].address, '桃園市楊梅區金溪里17鄰三民路二段***');
 });
 
 test('parses the complete 18-page registry fixture', async () => {
