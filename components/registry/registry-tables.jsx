@@ -66,9 +66,9 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
       className="min-w-[1180px]"
       containerClassName="max-h-[66vh] overflow-auto"
     >
-      <TableHeader className="sticky top-0 z-20 bg-slate-50/95 backdrop-blur">
+      <TableHeader className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur">
         <TableRow>
-          <TableHead className="sticky left-0 z-20 w-28 bg-slate-50">
+          <TableHead className="sticky left-0 z-40 w-28 bg-slate-50">
             地號
           </TableHead>
           <TableHead className="w-28">土地面積</TableHead>
