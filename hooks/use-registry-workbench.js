@@ -3,7 +3,10 @@
 import { useCallback, useMemo, useReducer, useState } from 'react';
 
 import { usePdfParser } from '@/hooks/use-pdf-parser.js';
-import { aggregateOwners } from '@/lib/registry/aggregation.js';
+import {
+  aggregateOwners,
+  fillKnownOwnerAddresses,
+} from '@/lib/registry/aggregation.js';
 import { exportRegistryWorkbook } from '@/lib/registry/excel.js';
 import {
   normalizeNumber,
@@ -212,17 +215,22 @@ export function useRegistryWorkbench() {
   const [exportMessage, setExportMessage] = useState('');
   const { parseFiles, isParsing } = usePdfParser();
 
+  const owners = useMemo(
+    () => fillKnownOwnerAddresses(state.owners),
+    [state.owners],
+  );
+
   const validations = useMemo(() => {
     const confirmed = new Set(state.confirmedIssueIds);
-    return validateLandRegistry(state).map((issue) => ({
+    return validateLandRegistry({ ...state, owners }).map((issue) => ({
       ...issue,
       confirmed: confirmed.has(issue.id),
     }));
-  }, [state]);
+  }, [state, owners]);
 
   const aggregatedOwners = useMemo(
-    () => aggregateOwners(state.owners, state.lands),
-    [state.owners, state.lands],
+    () => aggregateOwners(owners, state.lands),
+    [owners, state.lands],
   );
 
   const summary = useMemo(() => {
@@ -321,6 +329,7 @@ export function useRegistryWorkbench() {
     try {
       const fileName = await exportRegistryWorkbook({
         ...state,
+        owners,
         aggregatedOwners,
         validations,
       });
@@ -333,10 +342,11 @@ export function useRegistryWorkbench() {
       setExportMessage(message);
       throw error;
     }
-  }, [state, aggregatedOwners, validations, isParsing]);
+  }, [state, owners, aggregatedOwners, validations, isParsing]);
 
   return {
     ...state,
+    owners,
     validations,
     aggregatedOwners,
     summary,

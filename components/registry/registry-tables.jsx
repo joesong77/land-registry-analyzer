@@ -81,7 +81,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
           <TableHead className="w-24">來源</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody  className="[&_tr:first-child_td]:pt-3">
         {lands.map((land, landIndex) => {
           const landOwners = owners.filter(
             (owner) => owner.parcelId === land.id,
@@ -115,7 +115,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
                 {ownerIndex === 0 && (
                   <TableCell
                     rowSpan={displayOwners.length}
-                    className={`sticky left-0 z-10 border-r align-top ${groupTone}`}
+  className={`sticky border-r align-top ${groupTone}`}
                   >
                     <EditableCell
                       value={land.parcelNo}
@@ -137,7 +137,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
                 {ownerIndex === 0 && (
                   <TableCell
                     rowSpan={displayOwners.length}
-                    className="border-r align-top"
+                    className="border-r align-top "
                   >
                     <EditableCell
                       value={land.areaSqm}

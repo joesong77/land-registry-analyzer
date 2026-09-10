@@ -8,7 +8,9 @@ import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {
   aggregateOwners,
   calculateJointOwnershipShares,
+  fillKnownOwnerAddresses,
 } from '../lib/registry/aggregation.js';
+import { formatOwnerForExcel } from '../lib/registry/excel.js';
 import {
   normalizeParcelNo,
   normalizeRegistryText,
@@ -81,6 +83,29 @@ test('backfills an owner address from a later registry record', () => {
 
   assert.equal(aggregated.length, 1);
   assert.equal(aggregated[0].address, '桃園市楊梅區金溪里17鄰三民路二段***');
+
+  const filled = fillKnownOwnerAddresses(owners);
+  assert.equal(filled[0].address, '桃園市楊梅區金溪里17鄰三民路二段***');
+  assert.equal(filled[1].address, '桃園市楊梅區金溪里17鄰三民路二段***');
+  assert.equal(owners[0].address, '');
+});
+
+test('formats Excel owner cells as surname plus personal ID', () => {
+  assert.equal(formatOwnerForExcel('張**', 'L220*****4'), '張L220*****4');
+  assert.equal(
+    formatOwnerForExcel('歐陽＊＊', ' A123*****9 '),
+    '歐陽A123*****9',
+  );
+  assert.equal(formatOwnerForExcel('張**', ''), '張**');
+  assert.equal(formatOwnerForExcel('', 'L220*****4'), 'L220*****4');
+  assert.equal(
+    formatOwnerForExcel('張L220*****4', 'L220*****4'),
+    '張L220*****4',
+  );
+  assert.equal(
+    formatOwnerForExcel('某某股份有限公司', '12345678'),
+    '某某股份有限公司12345678',
+  );
 });
 
 test('parses the complete 18-page registry fixture', async () => {
