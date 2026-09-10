@@ -194,7 +194,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
                   {owner ? (
                     <EditableCell
                       value={owner.address}
-                      displayValue={owner.address || '謄本未載（點擊補登）'}
+                      displayValue={owner.address }
                       onSave={(value) =>
                         onUpdateOwner(owner.id, 'address', value)
                       }
@@ -323,7 +323,7 @@ export function OwnerTable({ owners, lands, onUpdateOwner }) {
               <TableCell className="max-w-96 whitespace-normal">
                 <EditableCell
                   value={owner.address}
-                  displayValue={owner.address || '謄本未載（點擊補登）'}
+                  displayValue={owner.address }
                   onSave={(value) => onUpdateOwner(owner.id, 'address', value)}
                   label={`${owner.parcelNo}${owner.ownerName}地址`}
                 />
@@ -386,7 +386,7 @@ export function AggregationTable({ owners }) {
             </TableCell>
             <TableCell>{owner.ownerId || '—'}</TableCell>
             <TableCell className="whitespace-normal">
-              {owner.address || '謄本未載'}
+              {owner.address }
             </TableCell>
             <TableCell>{owner.parcelCount}</TableCell>
             <TableCell className="whitespace-normal">
