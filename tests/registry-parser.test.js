@@ -6,6 +6,10 @@ import test from 'node:test';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 
 import {
+  cleanRecognizedAddress,
+  findAddressImagePlacements,
+} from '../lib/registry/address-ocr.js';
+import {
   aggregateOwners,
   calculateJointOwnershipShares,
   fillKnownOwnerAddresses,
@@ -31,6 +35,28 @@ test('normalizes parcel numbers and Chinese shares', () => {
     shareDenominator: 1000,
     shareDecimal: 0.382,
   });
+});
+
+test('locates image-based address rows and cleans local OCR text', () => {
+  const operatorList = {
+    fnArray: [pdfjs.OPS.save, pdfjs.OPS.transform, pdfjs.OPS.paintImageXObject],
+    argsArray: [null, [680, 0, 0, 14.4, 20, 469], ['address-image', 2837, 60]],
+  };
+  assert.deepEqual(findAddressImagePlacements(pdfjs, operatorList), [
+    {
+      objectId: 'address-image',
+      width: 2837,
+      height: 60,
+      x: 20,
+      y: 469,
+    },
+  ]);
+  assert.equal(
+    cleanRecognizedAddress(
+      '住址 : 人 台 中 市 西 屯 區 何 兩 里 21 瘓 大 安西 街 61 巷 12 號',
+    ),
+    '台中市西屯區何南里21鄰大安西街61巷12號',
+  );
 });
 
 test('calculates joint-ownership internal estimates without changing legal shares', () => {

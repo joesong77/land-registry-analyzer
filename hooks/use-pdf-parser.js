@@ -2,6 +2,10 @@
 
 import { useCallback, useState } from 'react';
 
+import {
+  findAddressImagePlacements,
+  recognizeAddressImageItems,
+} from '@/lib/registry/address-ocr.js';
 import { normalizeRegistryText } from '@/lib/registry/normalize.js';
 import { rebuildPageText } from '@/lib/registry/parser.js';
 
@@ -20,6 +24,23 @@ async function loadPdfJs() {
   return pdfModulesPromise;
 }
 
+async function createAddressOcrWorker() {
+  const { createWorker, PSM } = await import('tesseract.js');
+  const assetRoot = `${import.meta.env.BASE_URL}tesseract`;
+  const worker = await createWorker('chi_tra', 1, {
+    workerPath: `${assetRoot}/worker.min.js`,
+    corePath: `${assetRoot}/tesseract-core-simd-lstm.wasm.js`,
+    langPath: assetRoot,
+    gzip: true,
+  });
+  await worker.setParameters({
+    tessedit_pageseg_mode: PSM.SINGLE_LINE,
+    preserve_interword_spaces: '1',
+    user_defined_dpi: '300',
+  });
+  return worker;
+}
+
 export function usePdfParser() {
   const [isParsing, setIsParsing] = useState(false);
 
@@ -27,6 +48,7 @@ export function usePdfParser() {
     setIsParsing(true);
     const pages = [];
     const results = [];
+    let addressOcrWorker;
 
     try {
       const pdfjs = await loadPdfJs();
@@ -46,6 +68,8 @@ export function usePdfParser() {
             verbosity: pdfjs.VerbosityLevel.ERRORS,
           }).promise;
           let readablePages = 0;
+          let recognizedAddressCount = 0;
+          let addressOcrError = '';
 
           onProgress?.(entry.id, { pageCount: document.numPages });
 
@@ -56,7 +80,32 @@ export function usePdfParser() {
           ) {
             const page = await document.getPage(pageNumber);
             const content = await page.getTextContent();
-            const rawText = rebuildPageText(content.items);
+            let addressItems = [];
+            try {
+              const operatorList = await page.getOperatorList();
+              const placements = findAddressImagePlacements(
+                pdfjs,
+                operatorList,
+              );
+              if (placements.length) {
+                addressOcrWorker ??= await createAddressOcrWorker();
+                addressItems = await recognizeAddressImageItems({
+                  pdfjs,
+                  page,
+                  worker: addressOcrWorker,
+                  placements,
+                });
+                recognizedAddressCount += addressItems.length;
+              }
+            } catch (error) {
+              addressOcrError =
+                error instanceof Error ? error.message : '住址影像辨識失敗';
+            }
+
+            const rawText = rebuildPageText([
+              ...content.items,
+              ...addressItems,
+            ]);
             const normalizedText = normalizeRegistryText(rawText);
             if (normalizedText) readablePages += 1;
             pages.push({
@@ -82,9 +131,15 @@ export function usePdfParser() {
 
           results.push({
             id: entry.id,
-            status: 'complete',
+            status: addressOcrError ? 'warning' : 'complete',
             pageCount: document.numPages,
             progress: 100,
+            recognizedAddressCount,
+            error: addressOcrError
+              ? `住址影像辨識未完成：${addressOcrError}`
+              : recognizedAddressCount
+                ? `${recognizedAddressCount} 筆住址由本機影像辨識，請人工核對`
+                : '',
           });
         } catch (error) {
           const message =
@@ -106,6 +161,7 @@ export function usePdfParser() {
 
       return { pages, results };
     } finally {
+      await addressOcrWorker?.terminate?.();
       setIsParsing(false);
     }
   }, []);

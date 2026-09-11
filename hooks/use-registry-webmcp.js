@@ -89,7 +89,7 @@ export function useRegistryWebMcp({
         return { status: 'downloaded', fileName };
       },
     });
-
+    
     return () => lifecycle.abort();
   }, [summary, setActiveTab, exportWorkbook, canExport]);
 }
