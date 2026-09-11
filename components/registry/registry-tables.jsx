@@ -66,22 +66,22 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
       className="min-w-[1180px]"
       containerClassName="max-h-[66vh] overflow-auto"
     >
-      <TableHeader className="sticky top-0 z-30 bg-slate-50/95 backdrop-blur">
-        <TableRow>
-          <TableHead className="sticky left-0 z-40 w-28 bg-slate-50">
-            地號
-          </TableHead>
-          <TableHead className="w-28">土地面積</TableHead>
-          <TableHead className="w-32">地上建號</TableHead>
-          <TableHead className="w-32">所有權人</TableHead>
-          <TableHead className="min-w-64">所有權人地址</TableHead>
-          <TableHead className="w-28">持分</TableHead>
-          <TableHead className="w-28">持有面積</TableHead>
-          <TableHead className="w-44">風險</TableHead>
-          <TableHead className="w-24">來源</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody  className="[&_tr:first-child_td]:pt-3">
+   <TableHeader className="sticky top-14 z-50 bg-slate-50">
+  <TableRow >
+    <TableHead className="sticky left-0 z-[60] w-28 bg-slate-50">
+      地號
+    </TableHead>
+    <TableHead className="w-28 bg-slate-50">土地面積</TableHead>
+    <TableHead className="w-32 bg-slate-50">地上建號</TableHead>
+    <TableHead className="w-32 bg-slate-50">所有權人</TableHead>
+    <TableHead className="min-w-64 bg-slate-50">所有權人地址</TableHead>
+    <TableHead className="w-28 bg-slate-50">持分</TableHead>
+    <TableHead className="w-28 bg-slate-50">持有面積</TableHead>
+    <TableHead className="w-44 bg-slate-50">風險</TableHead>
+    <TableHead className="w-24 bg-slate-50">來源</TableHead>
+  </TableRow>
+</TableHeader>
+      <TableBody  className="[&_tr:first-child_td]:pt-40 relative z-0">
         {lands.map((land, landIndex) => {
           const landOwners = owners.filter(
             (owner) => owner.parcelId === land.id,

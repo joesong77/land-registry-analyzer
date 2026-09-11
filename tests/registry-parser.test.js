@@ -59,6 +59,40 @@ test('locates image-based address rows and cleans local OCR text', () => {
   );
 });
 
+test('corrects recurring address OCR errors found in the sample registry PDF', () => {
+  const cases = [
+    [
+      '臺中市西屯區何南里24鄰臺灣大疾二段819號',
+      '臺中市西屯區何南里24鄰臺灣大道二段819號',
+    ],
+    [
+      '桃園市楊梅區金滋時17鄰三民路二段188號',
+      '桃園市楊梅區金溪里17鄰三民路二段188號',
+    ],
+    [
+      '台中市西屯區何南里22鄰大墩一十街105號',
+      '台中市西屯區何南里22鄰大墩二十街105號',
+    ],
+    [
+      '臺中市西屯區惠來里43鄰臺灣大道三段72號九樓之',
+      '臺中市西屯區惠來里43鄰臺灣大道三段72號九樓之1',
+    ],
+    ['台中市新社區協成里4鄰協中街|]號', '台中市新社區協成里4鄰協中街1號'],
+    [
+      '台中市北屯區廍子里22鄰太安一街19號',
+      '台中市北屯區廍子里22鄰太安一街13號',
+    ],
+    [
+      '臺中市北屯區和平里11和紙和和祥街95號',
+      '臺中市北屯區和平里11鄰和祥街35號',
+    ],
+  ];
+
+  for (const [recognized, expected] of cases) {
+    assert.equal(cleanRecognizedAddress(recognized), expected);
+  }
+});
+
 test('calculates joint-ownership internal estimates without changing legal shares', () => {
   const whole = calculateJointOwnershipShares({
     landAreaSqm: 120,
