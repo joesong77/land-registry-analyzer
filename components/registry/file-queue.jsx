@@ -35,7 +35,7 @@ const statusConfig = {
   failed: { label: '失敗', icon: XCircle, className: 'bg-red-50 text-red-700' },
 };
 
-export function FileQueue({ files, onRemove }) {
+export function FileQueue({ files, onRemove, recordLabel = '地號' }) {
   return (
     <section
       aria-labelledby="file-queue-title"
@@ -69,8 +69,8 @@ export function FileQueue({ files, onRemove }) {
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                     {file.pageCount ? ` · ${file.pageCount} 頁` : ''}
-                    {file.recognizedParcels
-                      ? ` · ${file.recognizedParcels} 筆地號`
+                    {file.recognizedRecords || file.recognizedParcels
+                      ? ` · ${file.recognizedRecords ?? file.recognizedParcels} 筆${recordLabel}`
                       : ''}
                   </p>
                 </div>

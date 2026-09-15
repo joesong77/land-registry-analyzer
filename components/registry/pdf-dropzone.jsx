@@ -7,7 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
-export function PdfDropzone({ onFilesSelected, disabled, compact = false }) {
+export function PdfDropzone({
+  onFilesSelected,
+  disabled,
+  compact = false,
+  registryLabel = '土地謄本',
+}) {
   const inputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -50,7 +55,7 @@ export function PdfDropzone({ onFilesSelected, disabled, compact = false }) {
           type="button"
           variant="ghost"
           disabled={disabled}
-          aria-label="上傳土地謄本 PDF"
+          aria-label={`上傳${registryLabel} PDF`}
           onClick={openPicker}
           onDragEnter={(event) => {
             event.preventDefault();
@@ -77,7 +82,7 @@ export function PdfDropzone({ onFilesSelected, disabled, compact = false }) {
             <div className="mx-auto mb-5 grid size-16 place-items-center rounded-2xl border border-primary/15 bg-white text-primary shadow-sm transition-transform group-hover:-translate-y-0.5">
               <FileUp aria-hidden="true" className="size-7" />
             </div>
-            <p className="text-xl font-bold">拖曳土地謄本至此</p>
+            <p className="text-xl font-bold">拖曳{registryLabel}至此</p>
             <p className="mt-2 text-base text-muted-foreground">
               或點擊選擇一份或多份 PDF
             </p>

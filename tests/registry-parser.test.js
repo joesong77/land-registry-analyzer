@@ -10,6 +10,18 @@ import {
   findAddressImagePlacements,
 } from '../lib/registry/address-ocr.js';
 import {
+  buildingExcelHeaders,
+  buildingWorkbookRows,
+} from '../lib/registry/building-excel.js';
+import {
+  alignBuildingsToLandParcels,
+  countUniqueBuildingOwners,
+} from '../lib/registry/building-aggregation.js';
+import {
+  normalizeBuildingNo,
+  parseBuildingRegistryDocuments,
+} from '../lib/registry/building-parser.js';
+import {
   aggregateOwners,
   calculateJointOwnershipShares,
   fillKnownOwnerAddresses,
@@ -168,6 +180,58 @@ test('formats Excel owner cells as surname plus personal ID', () => {
   );
 });
 
+test('normalizes building numbers without removing registry padding', () => {
+  assert.equal(normalizeBuildingNo('00800-000'), '00800-000');
+  assert.equal(normalizeBuildingNo('８００－０'), '00800-000');
+});
+
+test('keeps land parcels with no building as blank building rows', () => {
+  const buildings = [
+    {
+      id: 'building-1',
+      buildingNo: '00800-000',
+      parcelNos: ['109-18'],
+      sourcePages: [1],
+    },
+  ];
+  const lands = [
+    {
+      id: 'land-empty',
+      parcelNo: '109-1',
+      buildingNos: [],
+      sourcePages: [1],
+    },
+    {
+      id: 'land-built',
+      parcelNo: '109-18',
+      buildingNos: ['00800-000'],
+      sourcePages: [2],
+    },
+  ];
+
+  const rows = alignBuildingsToLandParcels(buildings, lands);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].displayParcelNo, '109-1');
+  assert.equal(rows[0].buildingNo, '');
+  assert.equal(rows[0].isPlaceholder, true);
+  assert.deepEqual(rows[0].parcelNos, []);
+  const workbookRows = buildingWorkbookRows(rows, []).rows;
+  assert.equal(workbookRows[0].地號, '109-1');
+  assert.equal(workbookRows[0].建號, '');
+  assert.equal(workbookRows[0]['主建物(㎡)'], null);
+  assert.equal(rows[1].displayParcelNo, '109-18');
+  assert.equal(rows[1].buildingNo, '00800-000');
+});
+
+test('counts duplicate building owners only once', () => {
+  const owners = [
+    { id: 'owner-1', ownerName: '張**', ownerId: 'L220*****4' },
+    { id: 'owner-2', ownerName: '張**', ownerId: 'L220*****4' },
+    { id: 'owner-3', ownerName: '陳**', ownerId: 'B101*****3' },
+  ];
+  assert.equal(countUniqueBuildingOwners(owners), 2);
+});
+
 test('parses the complete 18-page registry fixture', async () => {
   const fixture = fileURLToPath(
     new URL('../../何厝段(109-1~114-52)-土地謄本.pdf', import.meta.url),
@@ -251,5 +315,93 @@ test('parses the complete 18-page registry fixture', async () => {
 
   const unresolved = validateLandRegistry(parsed);
   assert.ok(unresolved.every((issue) => issue.dataType === '限制登記'));
+  await document.destroy();
+});
+
+test('parses the complete building registry fixture and prepares requested Excel columns', async () => {
+  const fixture = fileURLToPath(
+    new URL('../../何厝段(109-18~114-60)-建物謄本.pdf', import.meta.url),
+  );
+  const data = new Uint8Array(fs.readFileSync(fixture));
+  const document = await pdfjs.getDocument({ data, disableWorker: true })
+    .promise;
+  const pages = [];
+
+  for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+    const page = await document.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const rawText = rebuildPageText(content.items);
+    pages.push({
+      sourceFileId: 'building-fixture',
+      sourceFileName: 'building-fixture.pdf',
+      pageNumber,
+      rawText,
+      normalizedText: normalizeRegistryText(rawText),
+    });
+  }
+
+  const parsed = parseBuildingRegistryDocuments(pages);
+  assert.equal(parsed.buildings.length, 8);
+  assert.equal(parsed.owners.length, 18);
+
+  const building800 = parsed.buildings.find(
+    (building) => building.buildingNo === '00800-000',
+  );
+  assert.deepEqual(building800.parcelNos, ['109-18']);
+  assert.equal(building800.address, '臺灣大道二段815號');
+  assert.equal(building800.levels, 'B1~4');
+  assert.equal(building800.floorCount, 4);
+  assert.equal(building800.primaryMaterial, '鋼筋混凝土造');
+  assert.equal(building800.completionDateROC, '67年12月15日');
+  assert.equal(building800.mainBuildingAreaSqm, 331.56);
+  assert.equal(building800.totalAreaSqm, 331.56);
+
+  const building1184Owners = parsed.owners.filter(
+    (owner) => owner.buildingNo === '01184-000',
+  );
+  assert.equal(building1184Owners.length, 5);
+  assert.deepEqual(
+    building1184Owners.map((owner) => owner.shareDecimal),
+    [1 / 3, 1 / 6, 1 / 6, 1 / 6, 1 / 6],
+  );
+
+  const building3361 = parsed.buildings.find(
+    (building) => building.buildingNo === '03361-000',
+  );
+  assert.deepEqual(building3361.parcelNos, [
+    '114-57',
+    '114-58',
+    '114-59',
+    '114-60',
+  ]);
+  assert.equal(building3361.attachedBuildingAreaSqm, 47.93);
+  assert.ok(Math.abs(building3361.totalAreaSqm - 660.61) < 0.000001);
+
+  assert.deepEqual(buildingExcelHeaders, [
+    '地號',
+    '建號',
+    '門牌',
+    '層次',
+    '層數',
+    '主要建材',
+    '坐落地號',
+    '建築完成日',
+    '主建物(㎡)',
+    '附屬建物(㎡)',
+    '停車場(㎡)',
+    '公設(㎡)',
+    '建物總面積(㎡)',
+    '建物總面積(坪)',
+    '所有權人',
+    '建物持分分子',
+    '/',
+    '建物持分分母',
+    '持有面積(㎡)',
+    '持有面積(坪)',
+  ]);
+  const workbook = buildingWorkbookRows(parsed.buildings, parsed.owners);
+  assert.equal(workbook.rows.length, 18);
+  assert.equal(workbook.rows[0].所有權人, '楊H102*****5');
+  assert.equal(workbook.rows[0]['持有面積(㎡)'], 331.56);
   await document.destroy();
 });

@@ -16,8 +16,10 @@ export function useRegistryWebMcp({
     if (!context?.registerTool) return undefined;
 
     const lifecycle = new AbortController();
-    const reportError = (error) =>
+    const reportError = (error) => {
+      if (error?.name === 'AbortError') return;
       console.warn('WebMCP tool registration failed', error);
+    };
 
     const register = (tool) => {
       try {
@@ -89,7 +91,7 @@ export function useRegistryWebMcp({
         return { status: 'downloaded', fileName };
       },
     });
-    
+
     return () => lifecycle.abort();
   }, [summary, setActiveTab, exportWorkbook, canExport]);
 }

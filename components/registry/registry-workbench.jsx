@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Building2,
   FileSpreadsheet,
   LandPlot,
   LockKeyhole,
@@ -41,6 +42,10 @@ import {
   ValidationTable,
 } from '@/components/registry/registry-tables';
 import { SummaryCards } from '@/components/registry/summary-cards';
+import { BuildingRegistryTable } from '@/components/registry/building-table';
+import { BuildingSummaryCards } from '@/components/registry/building-summary-cards';
+import { useBuildingRegistryWorkbench } from '@/hooks/use-building-registry-workbench.js';
+import { alignBuildingsToLandParcels } from '@/lib/registry/building-aggregation.js';
 import { useRegistryWebMcp } from '@/hooks/use-registry-webmcp.js';
 import { useRegistryWorkbench } from '@/hooks/use-registry-workbench.js';
 
@@ -54,8 +59,35 @@ function includesQuery(values, query) {
   return haystack.includes(query.toLowerCase());
 }
 
-export function RegistryWorkbench() {
-  const registry = useRegistryWorkbench();
+function RegistryModeSwitch({ value, onChange, disabled = false }) {
+  return (
+    <div
+      className="flex shrink-0 items-center gap-1 rounded-lg border bg-slate-50 p-1"
+      aria-label="謄本分析功能"
+    >
+      <Button
+        size="sm"
+        variant={value === 'land' ? 'default' : 'ghost'}
+        disabled={disabled}
+        onClick={() => onChange('land')}
+      >
+        <LandPlot aria-hidden="true" />
+        功能 1・土地謄本
+      </Button>
+      <Button
+        size="sm"
+        variant={value === 'building' ? 'default' : 'ghost'}
+        disabled={disabled}
+        onClick={() => onChange('building')}
+      >
+        <Building2 aria-hidden="true" />
+        功能 2・建物謄本
+      </Button>
+    </div>
+  );
+}
+
+function LandRegistryWorkbench({ registry, registryMode, setRegistryMode }) {
   const [activeTab, setActiveTab] = useState('land');
   const [query, setQuery] = useState('');
   const [riskFilter, setRiskFilter] = useState('all');
@@ -211,6 +243,12 @@ export function RegistryWorkbench() {
             </div>
           </div>
 
+          <RegistryModeSwitch
+            value={registryMode}
+            onChange={setRegistryMode}
+            disabled={registry.isParsing}
+          />
+
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
@@ -224,6 +262,7 @@ export function RegistryWorkbench() {
                 onFilesSelected={registry.addFiles}
                 disabled={registry.isParsing}
                 compact
+                registryLabel="土地謄本"
               />
             )}
             {registry.files.length > 0 && (
@@ -268,6 +307,7 @@ export function RegistryWorkbench() {
             <PdfDropzone
               onFilesSelected={registry.addFiles}
               disabled={registry.isParsing}
+              registryLabel="土地謄本"
             />
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
@@ -514,5 +554,264 @@ export function RegistryWorkbench() {
         </AlertDialogContent>
       </AlertDialog>
     </main>
+  );
+}
+
+function BuildingRegistryWorkbench({
+  registry,
+  registryMode,
+  setRegistryMode,
+  landRecords,
+}) {
+  const [query, setQuery] = useState('');
+  const [clearOpen, setClearOpen] = useState(false);
+  const displayBuildings = useMemo(
+    () => alignBuildingsToLandParcels(registry.buildings, landRecords),
+    [registry.buildings, landRecords],
+  );
+  const hasDisplayData = displayBuildings.length > 0;
+  const canExport = hasDisplayData && !registry.isParsing;
+  const filteredBuildings = useMemo(
+    () =>
+      displayBuildings.filter((building) => {
+        const sourceBuildingId = building.sourceBuildingId || building.id;
+        const buildingOwners = registry.owners.filter(
+          (owner) => owner.buildingId === sourceBuildingId,
+        );
+        return includesQuery(
+          [
+            building.buildingNo,
+            building.address,
+            building.parcelNos,
+            building.primaryMaterial,
+            buildingOwners.map((owner) => [owner.ownerName, owner.ownerId]),
+          ],
+          query,
+        );
+      }),
+    [displayBuildings, registry.owners, query],
+  );
+
+  return (
+    <main className="min-h-screen">
+      <header className="sticky top-0 z-40 border-b bg-white/92 backdrop-blur-xl">
+        <div className="mx-auto flex min-h-18 max-w-[1680px] items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+              <Building2 aria-hidden="true" className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold tracking-tight sm:text-xl">
+                建物謄本清冊
+              </h1>
+              <p className="hidden text-xs font-medium tracking-[0.08em] text-muted-foreground sm:block">
+                BUILDING REGISTRY PARSER
+              </p>
+            </div>
+          </div>
+
+          <RegistryModeSwitch
+            value={registryMode}
+            onChange={setRegistryMode}
+            disabled={registry.isParsing}
+          />
+
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="outline"
+              className="hidden h-7 border-emerald-200 bg-emerald-50 px-2.5 text-emerald-800 xl:inline-flex"
+            >
+              <LockKeyhole aria-hidden="true" />
+              PDF 僅在本機處理
+            </Badge>
+            {hasDisplayData && (
+              <PdfDropzone
+                onFilesSelected={registry.addFiles}
+                disabled={registry.isParsing}
+                compact
+                registryLabel="建物謄本"
+              />
+            )}
+            {registry.files.length > 0 && (
+              <Button variant="ghost" onClick={() => setClearOpen(true)}>
+                <Trash2 aria-hidden="true" />
+                <span className="hidden md:inline">清除資料</span>
+              </Button>
+            )}
+            <Button
+              disabled={!canExport || registry.exportStatus === 'exporting'}
+              onClick={() => registry.exportWorkbook(displayBuildings)}
+            >
+              <FileSpreadsheet aria-hidden="true" />
+              {registry.exportStatus === 'exporting'
+                ? '匯出中…'
+                : '匯出建物 Excel'}
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <div className="mx-auto w-full max-w-[1680px] space-y-5 px-4 py-7 sm:px-6 lg:px-8 lg:py-9">
+        {registry.files.length === 0 && !hasDisplayData ? (
+          <section
+            className="mx-auto max-w-5xl pt-2 lg:pt-4"
+            aria-labelledby="building-intake-title"
+          >
+            <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+              <div>
+                <p className="mb-1 font-mono text-xs font-semibold tracking-[0.14em] text-primary">
+                  功能 2 · 匯入建物謄本
+                </p>
+                <h2
+                  id="building-intake-title"
+                  className="text-2xl font-bold tracking-tight sm:text-3xl"
+                >
+                  將建物謄本整理成建物持分清冊
+                </h2>
+              </div>
+              <p className="max-w-md text-sm leading-6 text-muted-foreground">
+                土地與建物分開解析、分開匯出；系統會辨識建號、門牌、樓層、面積與每位所有權人的建物持分。
+              </p>
+            </div>
+            <PdfDropzone
+              onFilesSelected={registry.addFiles}
+              disabled={registry.isParsing}
+              registryLabel="建物謄本"
+            />
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              {[
+                ['01', '辨識建物', '解析建號、門牌與坐落地號'],
+                ['02', '展開持分', '一位所有權人一列'],
+                ['03', '建物專用 Excel', '依建號合併共同欄位'],
+              ].map(([step, title, description]) => (
+                <div
+                  key={step}
+                  className="flex gap-3 rounded-lg border bg-white/70 px-4 py-3"
+                >
+                  <span className="font-mono text-xs font-bold text-primary">
+                    {step}
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold">{title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <>
+            {registry.files.length > 0 && (
+              <FileQueue
+                files={registry.files}
+                onRemove={registry.removeFile}
+                recordLabel="建號"
+              />
+            )}
+            {hasDisplayData && (
+              <BuildingSummaryCards summary={registry.summary} />
+            )}
+            {registry.exportMessage && (
+              <Alert
+                variant={
+                  registry.exportStatus === 'error' ? 'destructive' : 'default'
+                }
+              >
+                <ShieldCheck aria-hidden="true" />
+                <AlertTitle>
+                  {registry.exportStatus === 'error'
+                    ? '匯出失敗'
+                    : 'Excel 已完成'}
+                </AlertTitle>
+                <AlertDescription>{registry.exportMessage}</AlertDescription>
+              </Alert>
+            )}
+            {hasDisplayData && (
+              <section
+                className="overflow-hidden rounded-xl border bg-white/94 shadow-sm"
+                aria-label="建物謄本資料工作台"
+              >
+                <div className="flex flex-col gap-2 border-b bg-white/96 p-3 sm:flex-row sm:items-center sm:justify-between sm:p-4">
+                  <div className="relative max-w-xl flex-1">
+                    <Search
+                      aria-hidden="true"
+                      className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="搜尋地號、建號、門牌、所有權人或統編"
+                      aria-label="搜尋建物清冊"
+                      className="h-10 pl-9"
+                    />
+                  </div>
+                  <p className="text-xs font-medium text-muted-foreground">
+                    顯示 {filteredBuildings.length} 筆地號／建物資料
+                  </p>
+                </div>
+                <BuildingRegistryTable
+                  buildings={filteredBuildings}
+                  owners={registry.owners}
+                  onUpdateBuilding={registry.updateBuilding}
+                  onUpdateOwner={registry.updateOwner}
+                />
+              </section>
+            )}
+          </>
+        )}
+      </div>
+
+      <AlertDialog open={clearOpen} onOpenChange={setClearOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <Trash2 aria-hidden="true" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>清除目前所有建物資料？</AlertDialogTitle>
+            <AlertDialogDescription>
+              將移除 {registry.files.length} 份 PDF、{registry.buildings.length}{' '}
+              筆建物資料與所有人工修改。此操作無法復原。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                registry.clearAll();
+                setClearOpen(false);
+              }}
+            >
+              清除資料
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </main>
+  );
+}
+
+export function RegistryWorkbench() {
+  const landRegistry = useRegistryWorkbench();
+  const buildingRegistry = useBuildingRegistryWorkbench();
+  const [registryMode, setRegistryMode] = useState('land');
+
+  return registryMode === 'building' ? (
+    <BuildingRegistryWorkbench
+      key="building-registry"
+      registry={buildingRegistry}
+      registryMode={registryMode}
+      setRegistryMode={setRegistryMode}
+      landRecords={landRegistry.lands}
+    />
+  ) : (
+    <LandRegistryWorkbench
+      key="land-registry"
+      registry={landRegistry}
+      registryMode={registryMode}
+      setRegistryMode={setRegistryMode}
+    />
   );
 }
