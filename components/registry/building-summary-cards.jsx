@@ -12,9 +12,9 @@ export function BuildingSummaryCards({ summary }) {
       tone: 'text-sky-700 bg-sky-50',
     },
     {
-      label: '不重複所有權人',
-      value: summary.uniqueOwnerCount,
-      meta: `${summary.ownerCount} 筆所有權紀錄`,
+      label: '所有權紀錄',
+      value: summary.ownerCount,
+      meta: `${summary.uniqueOwnerCount} 位推定地主`,
       icon: UsersRound,
       tone: 'text-teal-700 bg-teal-50',
     },

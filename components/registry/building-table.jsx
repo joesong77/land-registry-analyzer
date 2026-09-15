@@ -53,9 +53,35 @@ export function BuildingRegistryTable({
     );
   }
 
+  const ownerCounts = buildings.map((building) => {
+    const sourceBuildingId = building.sourceBuildingId || building.id;
+    const ownerCount = owners.filter(
+      (owner) => owner.buildingId === sourceBuildingId,
+    ).length;
+    return ownerCount || 1;
+  });
+  const parcelKeys = buildings.map(
+    (building) => building.displayParcelNo ?? building.parcelNos.join('、'),
+  );
+  const parcelRowSpans = buildings.map((_, buildingIndex) => {
+    if (buildingIndex > 0 && parcelKeys[buildingIndex - 1] === parcelKeys[buildingIndex]) {
+      return 0;
+    }
+
+    let rowSpan = 0;
+    for (
+      let index = buildingIndex;
+      index < buildings.length && parcelKeys[index] === parcelKeys[buildingIndex];
+      index += 1
+    ) {
+      rowSpan += ownerCounts[index];
+    }
+    return rowSpan;
+  });
+
   return (
     <Table
-      className="min-w-[2300px] text-center [&_td]:text-center [&_th]:text-center"
+      className="min-w-[2300px] text-center [&_td]:text-center [&_td]:align-middle [&_th]:text-center [&_th]:align-middle"
       containerClassName="max-h-[68vh] overflow-auto"
     >
       <TableHeader className="sticky top-0 z-30 bg-[#fffec8]">
@@ -83,7 +109,7 @@ export function BuildingRegistryTable({
           ].map((header, index) => (
             <TableHead
               key={header}
-              className={`${index === 0 ? 'sticky left-0 z-40' : ''} bg-[#fffec8] text-center text-slate-800`}
+              className={`${index === 0 ? 'sticky left-0 z-40' : ''} ${header === '建物持分' ? 'min-w-44' : ''} bg-[#fffec8] text-center text-slate-800`}
             >
               {header}
             </TableHead>
@@ -99,16 +125,18 @@ export function BuildingRegistryTable({
           const displayOwners = buildingOwners.length ? buildingOwners : [null];
           const tone =
             buildingIndex % 2 ? 'bg-emerald-50/65' : 'bg-orange-50/65';
+          const stickyTone =
+            buildingIndex % 2 ? 'bg-emerald-50' : 'bg-orange-50';
           return displayOwners.map((owner, ownerIndex) => (
             <TableRow
               key={`${building.rowId ?? building.id}-${owner?.id ?? 'empty'}`}
               data-building-row={building.rowId ?? building.id}
               className={`${tone} hover:bg-primary/5`}
             >
-              {ownerIndex === 0 && (
+              {ownerIndex === 0 && parcelRowSpans[buildingIndex] > 0 && (
                 <TableCell
-                  rowSpan={displayOwners.length}
-                  className={`sticky left-0 z-10 border-r text-center font-semibold ${tone}`}
+                  rowSpan={parcelRowSpans[buildingIndex]}
+                  className={`sticky left-0 z-10 border-r text-center font-semibold ${stickyTone}`}
                 >
                   {building.displayParcelNo ?? building.parcelNos.join('、')}
                 </TableCell>
@@ -116,7 +144,7 @@ export function BuildingRegistryTable({
               {ownerIndex === 0 && (
                 <TableCell
                   rowSpan={displayOwners.length}
-                  className="border-r text-center align-top"
+                  className="border-r text-center align-middle"
                 >
                   {building.isPlaceholder ? (
                     building.buildingNo
@@ -135,7 +163,7 @@ export function BuildingRegistryTable({
               {ownerIndex === 0 && (
                 <TableCell
                   rowSpan={displayOwners.length}
-                  className="min-w-60 border-r whitespace-normal align-top"
+                  className="min-w-60 border-r whitespace-normal align-middle"
                 >
                   {building.isPlaceholder ? (
                     ''
@@ -170,7 +198,7 @@ export function BuildingRegistryTable({
               {ownerIndex === 0 && (
                 <TableCell
                   rowSpan={displayOwners.length}
-                  className="min-w-44 border-r text-center whitespace-normal"
+                  className="min-w-44 border-r text-center whitespace-normal align-middle"
                 >
                   {building.primaryMaterial}
                 </TableCell>
@@ -201,7 +229,7 @@ export function BuildingRegistryTable({
                   <TableCell
                     key={field}
                     rowSpan={displayOwners.length}
-                    className="border-r text-center align-top"
+                    className="border-r text-center align-middle"
                   >
                     {building.isPlaceholder ? (
                       ''
@@ -236,7 +264,7 @@ export function BuildingRegistryTable({
                   <NumberCell value={building.totalAreaPing} />
                 </TableCell>
               )}
-              <TableCell className="min-w-36 text-center align-top">
+              <TableCell className="min-w-36 text-center align-middle">
                 {owner ? (
                   <>
                     <EditableCell
@@ -255,7 +283,7 @@ export function BuildingRegistryTable({
                   ''
                 )}
               </TableCell>
-              <TableCell className="text-center align-top">
+              <TableCell className="min-w-44 text-center align-middle">
                 {owner ? (
                   <EditableCell
                     value={owner.shareText}

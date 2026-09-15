@@ -99,10 +99,7 @@ export function LandGroupTable({ lands, owners, onUpdateLand, onUpdateOwner }) {
               ? owner?.calculatedOwnershipAreaPing
               : owner?.ownershipAreaPing;
             const shareDisplay = joint
-              ? owner?.calculatedShareNumerator &&
-                owner?.calculatedShareDenominator
-                ? `試算 ${owner.calculatedShareNumerator}/${owner.calculatedShareDenominator}`
-                : '公同共有'
+              ? '公同共有 1分之1'
               : owner?.shareNumerator && owner?.shareDenominator
                 ? `${owner.shareNumerator}/${owner.shareDenominator}`
                 : owner?.shareText || '—';
